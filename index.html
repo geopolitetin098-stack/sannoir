@@ -565,7 +565,7 @@ function sabotage(){if(rankIdx()<3)return toast('Срыв сделок — с р
 function scout(id){if(jailed())return toast('Ты в тюрьме');if(S.t>=FINALE_T)return toast('Сделка уже прошла');if((S.scoutCd[id]||0)>S.t)return toast('Это задание снова доступно через '+dur(S.scoutCd[id]-S.t));if(avail()<400)return toast('Нужно 400 Н');pay(400);S.scoutCd[id]=S.t+6*60;bump('scout');const s=SCOUT.find(x=>x.id===id);
  if(Math.random()<.6&&S.clues[id]<3){S.clues[id]++;addRep(10);toast(`Зацепка «${s.clue}» +1`);setKrax('plotting',`Есть зацепка: ${s.clue.toLowerCase()}. Клан стал ближе к мечте Босса.`)}else{toast('Ничего не удалось узнать');setKrax('sad','Пусто. Попробуем позже.')}checkTasksDone();save();render()}
 function contribute(){if(avail()<1000)return toast('Нужно 1 000 Н');pay(1000);S.clanContrib+=1000;addRep(5);toast('Вклад в клан: 1 000 Н');save();render()}
-function mug(){const d=dayOf(S.t);if(S.mugDay&&d-S.mugDay<3)return;if(avail()<100)return toast('Нужно 100 Н');pay(100);S.mugDay=d;addRep(25);setKrax('happy','Новая кружка! Теперь чай не проливается, когда Босс говорит «захватить мир».');save();render()}
+function mug(){const d=dayOf(S.t);if(S.mugDay&&d-S.mugDay<3)return;if(avail()<100)return toast('Нужно 100 Н');pay(100);S.mugDay=d;addRep(25);toast(`Кружка куплена: +25 реп. (всего ${fmt(S.rep)})`);setKrax('happy','Новая кружка! Теперь чай не проливается, когда Босс говорит «захватить мир».');save();render()}
 function clanScore(){const c=S.clues;return S.clanPts+(c.place+c.time+c.guard+c.route)*15+S.clanContrib*3/200}
 function clanReady(){return Object.values(S.clues).every(v=>v>=1)}
 
@@ -789,8 +789,8 @@ function tasksHTML(){
  ${row('Сорвать сделку конкурента','Подготовка 1 000 Н. Шанс 60%: награда 3 000 Н. Провал — тюрьма 6 часов.','','3 000 Н · +60 реп.',r<3?'<span class="xs mu">С ранга Авторитет</span>':`<button class="btn sm" data-act="sabotage" ${S.sabotage===dayOf(S.t)?'disabled':''}>Идти на дело</button>`)}
  <div class="lbl">Разведка сезона · зацепки к сделке Босса</div>
  ${SCOUT.map(s=>{const cd=(S.scoutCd[s.id]||0)>S.t;return row(s.n,`${s.d} Стоит 400 Н, удача 60%.`,`Зацепка «${s.clue}»: ${S.clues[s.id]}/3`,'+10 реп.',`<button class="btn sm" data-scout="${s.id}" ${cd||S.t>=FINALE_T?'disabled':''}>${cd?'Через '+dur(S.scoutCd[s.id]-S.t):'Пойти'}</button>`)}).join('')}
- <div class="lbl">Просьба Кракса</div>
- ${row('Новая кружка для Кракса','Старую он уронил, когда Босс сказал «захватить мир». Раз в 3 дня.','','+25 реп.',`<button class="btn or sm" data-act="mug" ${mugOk?'':'disabled'}>Купить кружку · 100 Н</button>`)}
+ <div class="lbl">Просьба Кракса · ваша репутация ${fmt(S.rep)}</div>
+ ${row('Новая кружка для Кракса','Старую он уронил, когда Босс сказал «захватить мир». Раз в 3 дня.',mugOk?'':`Куплена в день ${S.mugDay}, следующая — в день ${S.mugDay+3}`,'+25 реп.',`<button class="btn or sm" data-act="mug" ${mugOk?'':'disabled'}>${mugOk?'Купить кружку · 100 Н':'Уже куплена'}</button>`)}
  <button class="btn gh full" data-close>Закрыть</button>`}
 function seasonHTML(){const d=dayOf(S.t);const c=S.clues;const ph=d<=14?0:d<=27?1:2;
  const rows=[{n:'Неоновые (ваш клан)',pts:clanScore(),ready:clanReady(),me:true},...S.npcClans.map(x=>({n:x.n,pts:x.pts,ready:x.clues>=4}))].sort((a,b)=>b.pts-a.pts);
