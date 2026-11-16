@@ -77,6 +77,11 @@ input[type=number],input[type=text],select{width:100%;min-height:42px;border-rad
 .rain{animation:rn 1.2s linear infinite}@keyframes rn{from{transform:translateY(-60px)}to{transform:translateY(200px)}}
 .warn{background:#2A1416;border:1px solid #5A2228;color:#FFB3BB;border-radius:12px;padding:10px 12px;font-size:13px}
 .ok{color:var(--green)}.bad{color:var(--red)}
+.pl{display:inline-block;padding:3px 9px;border-radius:8px;font-size:13px;font-weight:800;white-space:nowrap}
+.pl.up{background:rgba(61,220,151,.16);color:#5BF0AE;box-shadow:0 0 10px rgba(61,220,151,.25)}.pl.dn{background:rgba(255,77,94,.16);color:#FF6B79;box-shadow:0 0 10px rgba(255,77,94,.25)}
+.stat .pl{align-self:flex-start;margin-top:2px;font-size:12px;padding:2px 7px}
+.seg{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;flex:none}.seg button{background:transparent;color:var(--mu);border:0;padding:8px 12px;font-weight:800;font-size:13px}.seg button.on{background:var(--cyan);color:#06121A}
+.btn.xs2{padding:6px 10px;font-size:12px;min-height:0}
 table.t{width:100%;border-collapse:collapse;font-size:12.5px}
 table.t td{padding:6px 4px;border-bottom:1px solid var(--line2)}
 .spark{width:100%;height:46px}
@@ -521,6 +526,7 @@ function resolveExpo(){
    else{S.jail=S.t+6*60;addRep(-10);let extra='';if(tgt.owner==='Босс'){addRep(-50);pay(Math.min(1000,Math.max(0,avail())));extra=' Это была машина Босса — месть: −50 репутации и штраф 1 000 Н.'}lines.push({c:'bad',t:`Ограбление ${CAR[tgt.id].name} провалилось. Тюрьма на 6 часов.${extra} Шанс был ${Math.round(ch*100)}%.`});setKrax('scared','Тебя взяли… Посиди тихо 6 часов. Босс будет недоволен.')}}}
  mine.forEach(c=>{const cc=S.cars.find(x=>x.u===c.u);if(cc)cc.lock=null});
  e.res={income,lines,all:all.map(x=>({id:x.id,owner:x.owner,gone:!!x.gone,mine:x.mine}))};
+ S.lastExpo={...e.res,day:dayOf(S.t),boss:!!e.boss,took:mine.length>0||!!e.gang,robbed};
  if(mine.length||e.gang)ui.modal={k:'expoRes'};
  news(`Выставка ${e.boss?'Босса ':''}открылась: ${all.length} машин, угонов — ${robbed}`,'#FF3EA5');
 }
@@ -686,13 +692,18 @@ function lotCard(l){const b=BOXES[l.k];const price=lotPrice(l,S.t);const lead=lo
  ${l.max?`<span class="xs mu">Ваш максимум: ${N(l.max)} (заморожено до конца торгов)</span>`:''}
  ${won?'<span class="xs mu">Сегодня вы уже выиграли лот этого типа.</span>':`<div class="row"><input type="number" inputmode="numeric" id="bid${l.id}" value="${Math.max(price+b.step,(l.max||0)+b.step)}" aria-label="Максимальная ставка"><button class="btn sm" data-bid="${l.id}">Автоставка</button></div>`}</section>`}
 
+function expoSummary(){const r=S.lastExpo;if(!r)return'';const today=r.day===dayOf(S.t);const mineGone=r.all.filter(x=>x.mine&&x.gone).length;const gangOk=r.lines.some(l=>l.c==='ok');
+ return `<section class="card" style="border-color:#5A2148"><div class="between"><b>${today?'Итоги сегодняшней выставки':'Итоги прошлой выставки'}</b><span class="xs mu">день ${r.day}${r.boss?' · Босса':''}</span></div>
+ <div class="grid3"><div class="stat"><span class="xs mu">Машин</span><b>${r.all.length}</b></div><div class="stat"><span class="xs mu">Угонов</span><b class="${r.robbed?'bad':''}">${r.robbed||0}</b></div><div class="stat"><span class="xs mu">Ваш доход</span><b style="color:var(--cyan)">${r.took?fmt(r.income):'—'}</b></div></div>
+ ${mineGone?`<span class="sm bad">Угнали ваших машин: ${mineGone}</span>`:''}${gangOk?'<span class="sm ok">Ваша банда сработала успешно</span>':''}
+ <button class="btn gh sm" data-act="expoRes">Подробнее</button></section>`}
 function viewExpo(){
  const e=S.expo;const open=regOpen();const toReg=19*60-tod(S.t);const g=GUARDS[e.guard];
  const free=S.cars.filter(c=>!c.lock||c.lock==='expo');
  const pres=e.entries.reduce((s,u)=>{const c=S.cars.find(x=>x.u===u);return s+(c?CAR[c.id].pres:0)},0);
  return `
  <div class="col"><span class="h1">${e.boss?'Выставка Босса':'Выставка'}</span><span class="sm mu">Каждый день в 20:00 · запись до 19:00 · ${esc(e.ann)}</span></div>
- ${e.done&&e.res?`<button class="btn gh" data-act="expoRes">Итоги сегодняшней выставки</button>`:''}
+ ${expoSummary()}
  <section class="card"><div class="between"><b>Ваши машины на выставке</b><span class="sm mu">${e.entries.length}/3</span></div>
   <span class="xs mu">Доход = престиж × 6${e.boss?' × 1,5 (выставка Босса)':''}. Сейчас: престиж ${pres} → ≈ ${N(pres*6*(e.boss?1.5:1))}. Что выставят другие, узнаем только на открытии.</span>
   ${open?`<div class="col" style="gap:6px">${free.length?free.map(c=>`<label class="between sm" style="padding:6px 0;border-bottom:1px solid var(--line2)"><span><span style="color:${RAR[CAR[c.id].r].c}">●</span> ${esc(CAR[c.id].name)} <span class="mu xs">престиж ${CAR[c.id].pres}</span></span><input type="checkbox" data-expo="${c.u}" ${e.entries.includes(c.u)?'checked':''} style="width:22px;height:22px"></label>`).join(''):'<span class="sm mu">Нет свободных машин.</span>'}</div>`:'<span class="sm mu">Запись закрыта.</span>'}
@@ -706,19 +717,29 @@ function viewExpo(){
  ${S.expoHist?'':''}
  `}
 
+function stockQ(s,mode,v){const pos=S.port[s.id]||{q:0};return mode==='qty'?Math.round(v):Math.floor(v/s.p)}
+function stockHint(s){const mode=ui.qmode||'sum';const v=+((ui.qv||{})[s.id+mode])||0;if(!(v>0))return '';if(mode==='sum'){const q=Math.floor(v/s.p);return q>0?`≈ ${q} акц. на ${N(Math.round(q*s.p))}`:'Не хватает даже на 1 акцию'}return `≈ ${N(Math.round(v*s.p))}`}
+function stockDefault(s){const mode=ui.qmode||'sum';const k=s.id+mode;ui.qv=ui.qv||{};if(ui.qv[k]==null)ui.qv[k]=mode==='sum'?Math.max(0,Math.min(1000,Math.floor(avail()))):10;return ui.qv[k]}
+function stockFill(id,frac){const s=S.stocks.find(x=>x.id===id);const mode=ui.qmode||'sum';const pos=S.port[id]||{q:0};let v;
+ if(mode==='sum')v=Math.floor(Math.max(0,avail())*frac);else v=pos.q?Math.max(1,Math.floor(pos.q*frac)):Math.floor(Math.max(0,avail())*frac/s.p);
+ ui.qv=ui.qv||{};ui.qv[id+mode]=v;const el=$('#q_'+id);if(el)el.value=v;const h=$('#h_'+id);if(h)h.textContent=stockHint(s)}
 function viewStocks(){
  const r=S.rumors.stock;const pv=Object.entries(S.port).reduce((s,[id,p])=>s+(p.q*S.stocks.find(x=>x.id===id).p),0);
+ const cost=Object.values(S.port).reduce((s,p)=>s+p.q*p.avg,0);const upl=pv-cost;const upct=cost?upl/cost*100:0;const mode=ui.qmode||'sum';
  return `
  <div class="col"><span class="h1">Биржа</span><span class="sm mu">Цены двигают скрытые события: контракты, скандалы, смена руководства.</span></div>
- <section class="card"><div class="grid3"><div class="stat"><span class="xs mu">Портфель</span><b>${fmt(pv)}</b></div><div class="stat"><span class="xs mu">Итог сделок</span><b class="${S.stats.pl>=0?'ok':'bad'}">${S.stats.pl>=0?'+':''}${fmt(S.stats.pl)}</b></div><div class="stat"><span class="xs mu">Удачных</span><b>${S.stats.trades?Math.round(S.stats.good/Math.max(1,S.stats.trades)*100):0}%</b></div></div><span class="xs mu">Честная статистика: одна удачная сделка ещё не значит, что вы умеете предсказывать рынок.</span></section>
+ <section class="card"><div class="grid3"><div class="stat"><span class="xs mu">Портфель</span><b>${fmt(pv)}</b>${cost?`<span class="pl ${upl>=0?'up':'dn'}">${upl>=0?'+':''}${upct.toFixed(1)}%</span><span class="xs ${upl>=0?'ok':'bad'}">${upl>=0?'+':''}${fmt(upl)} Н</span>`:'<span class="xs mu">акций нет</span>'}</div><div class="stat"><span class="xs mu">Закрытые сделки</span><b class="${S.stats.pl>=0?'ok':'bad'}">${S.stats.pl>=0?'+':''}${fmt(S.stats.pl)}</b></div><div class="stat"><span class="xs mu">Удачных</span><b>${S.stats.trades?Math.round(S.stats.good/Math.max(1,S.stats.trades)*100):0}%</b></div></div><span class="xs mu">Портфель — сколько ваши акции стоят сейчас и сколько вы на них в плюсе или минусе. Закрытые сделки — итог уже проданных акций.</span></section>
  <section class="card"><b>Слухи</b>${r?`<span class="sm">Щёлк: «${esc(COMPANIES.find(c=>c.id===r.id).n)}» скоро ${r.dir>0?'вырастет':'упадёт'}. ${r.checked?(r.truth?'<span class="ok">Шип: правда.</span>':'<span class="bad">Шип: ложь!</span>'):'Не подтверждено.'}</span>${r.checked?'':'<button class="btn gh sm" data-act="verifyStock">Проверить у Шипа · 200 Н</button>'}`:`<span class="xs mu">Щёлк продаёт слухи о ближайшем событии. Верны в 7 случаях из 10.</span><button class="btn or sm" data-act="rumorStock">Купить слух · 300 Н</button>`}</section>
  ${S.stocks.map(s=>{const c=COMPANIES.find(x=>x.id===s.id);const p0=s.h[0],ch=(s.p/p0-1)*100;const pos=S.port[s.id]||{q:0,avg:0};const hype=s.ev.t-S.t<4*60;
   const mn=Math.min(...s.h),mx=Math.max(...s.h);const pts=s.h.map((v,i)=>`${(i/(s.h.length-1)*300).toFixed(1)},${(42-(v-mn)/((mx-mn)||1)*38).toFixed(1)}`).join(' ');
   return `<section class="card" style="${hype?'border-color:#2A6B8A;box-shadow:0 0 16px rgba(79,195,240,.25)':''}"><div class="between"><div class="col"><b>${c.n}</b><span class="xs mu">${c.d}</span></div><div class="col" style="align-items:flex-end"><b>${s.p.toFixed(1)} Н</b><span class="xs ${ch>=0?'ok':'bad'}">${ch>=0?'+':''}${ch.toFixed(1)}% за сутки</span></div></div>
    <svg class="spark" viewBox="0 0 300 46" preserveAspectRatio="none" aria-hidden="true"><polyline points="${pts}" fill="none" stroke="${ch>=0?'#3DDC97':'#FF4D5E'}" stroke-width="2"/></svg>
    ${hype?'<span class="xs" style="color:#4FC3F0">Пульс светится: вокруг компании ажиотаж — скоро новость.</span>':''}
-   ${pos.q?`<span class="xs mu">У вас ${pos.q} акц. · средняя ${pos.avg.toFixed(1)} · ${(s.p-pos.avg)>=0?'+':''}${fmt((s.p-pos.avg)*pos.q)} Н</span>`:''}
-   <div class="row"><input type="number" inputmode="numeric" id="q_${s.id}" value="10" min="1" aria-label="Количество акций"><button class="btn cy sm" data-buy="${s.id}">Купить</button><button class="btn gh sm" data-sell="${s.id}" ${pos.q?'':'disabled'}>Продать</button></div></section>`}).join('')}
+   ${pos.q?(()=>{const pl=(s.p-pos.avg)*pos.q,pp=(s.p/pos.avg-1)*100;return `<div class="between"><span class="xs mu">У вас ${pos.q} акц. · средняя ${pos.avg.toFixed(1)}</span><span class="pl ${pl>=0?'up':'dn'}">${pl>=0?'+':''}${pp.toFixed(1)}% · ${pl>=0?'+':''}${fmt(pl)} Н</span></div>`})():''}
+   <div class="row"><input type="number" inputmode="numeric" id="q_${s.id}" data-qin="${s.id}" value="${stockDefault(s)}" min="0" aria-label="${mode==='sum'?'Сумма в нуарах':'Количество акций'}"><div class="seg"><button class="${mode==='sum'?'on':''}" data-qmode="sum">Н</button><button class="${mode==='qty'?'on':''}" data-qmode="qty">шт.</button></div></div>
+   <div class="row"><button class="btn gh xs2" data-qfill="${s.id}:.25">25%</button><button class="btn gh xs2" data-qfill="${s.id}:.5">50%</button><button class="btn gh xs2" data-qfill="${s.id}:1">Всё</button><span class="xs mu" id="h_${s.id}" style="margin-left:auto">${stockHint(s)}</span></div>
+   <div class="grid2"><button class="btn cy sm" data-buy="${s.id}">Купить</button><button class="btn gh sm" data-sell="${s.id}" ${pos.q?'':'disabled'}>Продать</button></div>
+   ${pos.q?`<button class="btn gh xs2" data-sellall="${s.id}">Продать все ${pos.q} акц. · ≈ ${N(Math.round(pos.q*s.p))}</button>`:''}</section>`}).join('')}
  `}
 
 /* ============ МОДАЛКИ ============ */
@@ -745,7 +766,7 @@ function modalHTML(){const m=ui.modal;if(!m)return'';
   <span class="xs mu">Пока долг не закрыт, новый не взять, а на контейнеры и ставки идут только свои деньги.</span><button class="btn gh full" data-close>Закрыть</button>`}
  if(m.k==='friends'){return `<span class="h1">Друзья</span><section class="card"><span class="sm" style="word-break:break-all">Ваша ссылка: <b>${esc(refLink())}</b></span><div class="grid2"><button class="btn cy sm" data-act="shareRef">Пригласить в Telegram</button><button class="btn gh sm" data-act="copyRef">Скопировать</button></div><span class="xs mu">Бонус 500 Н и пассивный доход 10 Н/ч на 2 недели — когда друг дорастёт до Шестёрки. Пять таких друзей — ещё 2 000 Н.</span><button class="btn or sm" data-act="invite">Демо: друг пришёл по ссылке</button></section>${S.friends.map(f=>`<div class="feed"><span class="led" style="background:${f.rank?'var(--green)':'var(--mu)'}"></span><div class="col"><b class="sm">${esc(f.n)}</b><span class="xs mu">${RANKS[f.rank].n}${f.rank&&S.t<f.passiveTo?' · приносит 10 Н/ч':''}</span></div></div>`).join('')}<button class="btn gh full" data-close>Закрыть</button>`}
  if(m.k==='hof')return `<span class="h1">Зал славы</span><span class="sm mu">Остаётся навсегда, переживает вайпы.</span>${S.hof.length?S.hof.map(h=>`<div class="feed"><span class="led" style="background:var(--gold)"></span><span class="sm">Сезон ${h.s}: ${esc(h.t)}</span></div>`).join(''):'<span class="sm">Пока пусто. Первая запись — у клана, который уведёт мечту Босса.</span>'}<button class="btn gh full" data-close>Закрыть</button>`;
- if(m.k==='expoRes'){const r=S.expo.res;if(!r)return'';return `<span class="h1">Итоги выставки</span><span class="sm">Ваш доход: <b style="color:var(--cyan)">${N(r.income)}</b></span><div class="lbl">Что выставили</div><div class="col" style="gap:4px">${r.all.map(x=>`<div class="between xs"><span style="color:${RAR[CAR[x.id].r].c}">${esc(CAR[x.id].name)}</span><span class="${x.gone?'bad':'mu'}">${x.mine?'вы':esc(x.owner)}${x.gone?' · угнана':''}</span></div>`).join('')}</div><div class="lbl">События</div>${r.lines.map(l=>`<div class="sm ${l.c}">${esc(l.t)}</div>`).join('')}<button class="btn full" data-close>Понятно</button>`}
+ if(m.k==='expoRes'){const r=S.lastExpo||S.expo.res;if(!r)return'';return `<span class="h1">Итоги выставки${r.day!=null?' · день '+r.day:''}</span>${r.took===false?'<span class="sm mu">Вы в этой выставке не участвовали.</span>':`<span class="sm">Ваш доход: <b style="color:var(--cyan)">${N(r.income)}</b></span>`}<div class="lbl">Что выставили</div><div class="col" style="gap:4px">${r.all.map(x=>`<div class="between xs"><span style="color:${RAR[CAR[x.id].r].c}">${esc(CAR[x.id].name)}</span><span class="${x.gone?'bad':'mu'}">${x.mine?'вы':esc(x.owner)}${x.gone?' · угнана':''}</span></div>`).join('')}</div><div class="lbl">События</div>${r.lines.map(l=>`<div class="sm ${l.c}">${esc(l.t)}</div>`).join('')}<button class="btn full" data-close>Понятно</button>`}
  if(m.k==='krax')return `<div class="row"><div style="width:110px;flex:none">${kraxSVG(m.m,110,'kx')}</div><div class="bubble" style="flex:1">${esc(m.t)}</div></div><button class="btn full" data-close>Понял</button>`;
  if(m.k==='collateral'){const c=S.loan&&S.cars.find(x=>x.u===S.loan.u);return `<div class="row"><div style="width:110px;flex:none">${kraxSVG('angry',110,'kc')}</div><div class="bubble" style="flex:1">Срок по крупному долгу вышел. Выбирай: отдаёшь залог${c?' — '+esc(CAR[c.id].name):''} Боссу или отрабатываешь. Отработка: все награды за задания идут в счёт долга.</div></div><button class="btn" data-coll="give">Отдать залог</button><button class="btn gh" data-coll="work">Отрабатывать</button>`}
  if(m.k==='finale'){const f=S.finale;return `<span class="h1">Сделка Босса</span><div class="row"><div style="width:110px;flex:none">${kraxSVG(S.krax.m,110,'kf')}</div><div class="bubble" style="flex:1">${esc(S.krax.t)}</div></div><div class="lbl">Кланы, собравшие все зацепки</div>${f.cands.length?f.cands.map(c=>`<div class="between sm"><span>${esc(c.n)}</span><span class="mu">${c.pts} очков подготовки</span></div>`).join(''):'<span class="sm mu">Ни одного.</span>'}<b style="color:${f.me?'var(--green)':'var(--pink2)'}">${f.win?(f.me?'Ваш клан увёл Bugatti La Voiture Noire!':'Машину увёл клан «'+esc(f.win)+'»'):'Мечта осталась у Босса'}</b>${f.me?'<span class="xs mu">Машина на вашем складе и в Зале славы. Во втором сезоне на клан откроют «Охоту Босса».</span>':''}<button class="btn full" data-close>Дальше</button>`}
@@ -809,8 +830,12 @@ document.addEventListener('click',e=>{
  if(d.bid){const v=+($('#bid'+d.bid)||{}).value;return bidLot(+d.bid,v)}
  if(d.boss)return sellBoss(+d.boss);
  if(d.guard)return setGuard(+d.guard);
- if(d.buy){const q=+($('#q_'+d.buy)||{}).value;return trade(d.buy,q,'buy')}
- if(d.sell){const q=+($('#q_'+d.sell)||{}).value;return trade(d.sell,q,'sell')}
+ if(d.qmode){ui.qmode=d.qmode;render();return}
+ if(d.qfill){const [id,f]=d.qfill.split(':');return stockFill(id,+f)}
+ if(d.sellall){const pos=S.port[d.sellall];return pos&&pos.q?trade(d.sellall,pos.q,'sell'):null}
+ if(d.buy||d.sell){const id=d.buy||d.sell;const s=S.stocks.find(x=>x.id===id);const v=+($('#q_'+id)||{}).value;const mode=ui.qmode||'sum';let q=stockQ(s,mode,v);
+  if(d.sell){const pos=S.port[id]||{q:0};if(mode==='sum')q=Math.min(pos.q,Math.round(v/s.p))}
+  if(!(q>0))return toast(mode==='sum'?'Сумма меньше цены одной акции':'Укажите количество');return trade(id,q,d.buy?'buy':'sell')}
  if(d.loan)return takeLoan('small');
  if(d.loanbig)return takeLoan('big',+d.loanbig);
  if(d.coll)return collateralChoice(d.coll==='give');
@@ -826,6 +851,7 @@ document.addEventListener('click',e=>{
  if(map[a])map[a]();
 });
 document.addEventListener('change',e=>{const d=e.target.dataset;if(d.expo)toggleExpo(+d.expo)});
+document.addEventListener('input',e=>{const d=e.target.dataset;if(d.qin){const s=S.stocks.find(x=>x.id===d.qin);ui.qv=ui.qv||{};ui.qv[d.qin+(ui.qmode||'sum')]=+e.target.value;const h=$('#h_'+d.qin);if(h)h.textContent=stockHint(s)}});
 $('#modal').addEventListener('click',e=>{if(e.target.id==='modal'&&ui.modal&&!['collateral','opening'].includes(ui.modal.k)){ui.modal=null;render()}});
 $('#devbtn').addEventListener('click',()=>$('#devpanel').classList.toggle('on'));
 function dev(k){
