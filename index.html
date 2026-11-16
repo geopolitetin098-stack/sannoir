@@ -779,7 +779,8 @@ function tasksHTML(){
  return `<div class="row"><div style="width:96px;flex:none">${kraxSVG(S.krax.m,96,'tk')}</div><div class="bubble" style="flex:1">${S.loan&&S.loan.workoff?'Пока отрабатываешь долг, награды идут Боссу. Репутация — тебе.':'Поручения от меня и от Босса. Выполняй — растёт репутация, а с ней и ранг.'}</div></div>
  ${jailed()?'<div class="warn">Вы в тюрьме — награды забрать нельзя.</div>':''}
  ${tut.length?`<div class="lbl">Первые шаги</div>${tut.map(t=>{const p=Math.min(t.need,(S.tutProg&&S.tutProg[t.k])||0);return row(t.n,t.d,`${p}/${t.need}`,`+${fmt(t.rw)} Н · +${t.rep} реп.`,`<button class="btn sm" data-tut="${t.id}" ${p>=t.need?'':'disabled'}>Забрать</button>`)}).join('')}`:''}
- <div class="lbl">Поручения дня · обновятся в 00:00</div>
+ <div class="lbl">Поручения дня · игровой день ${dayOf(S.t)} · новые через ${dur(1440-tod(S.t))}</div>
+ <span class="xs mu">Засчитываются только действия, сделанные в этот игровой день — то, что было до 00:00, не считается.</span>
  ${S.daily.ids.map(id=>{const t=DAILY.find(x=>x.id===id);const p=Math.min(t.need,cnt(t.k));const cl=S.daily.claimed[id];return row(t.n,t.d,`${p}/${t.need}`,`+${fmt(t.rw)} Н · +${t.rep} реп.`,cl?'<span class="xs ok">Выполнено</span>':`<button class="btn sm" data-daily="${id}" ${p>=t.need?'':'disabled'}>Забрать</button>`)}).join('')}
  <span class="xs mu">Все три поручения за день — бонус 300 Н${S.daily.bonus?' (получен)':''}.</span>
  <div class="lbl">Поручения Босса</div>
